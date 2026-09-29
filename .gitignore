@@ -1,0 +1,27 @@
+# Virtual Environment
+.venv/
+env/
+venv/
+ENV/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Spark / Lakehouse Checkpoints & Data
+checkpoints/
+data/bronze/
+data/silver/
+data/gold/
+*.parquet
+*.crc
+
+# Temporary & Logs
+*.log
+E:/temp/
+temp/
+.DS_Store
+Thumbs.db
