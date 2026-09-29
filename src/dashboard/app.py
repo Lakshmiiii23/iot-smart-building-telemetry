@@ -78,16 +78,61 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+def seed_cloud_demo_data(ticks: int = 15):
+    """Generates realistic telemetry and processes through Medallion layers on the fly."""
+    from src.batch.scd2_room_dimension import run_scd2_pipeline, load_scd2_room_dimension
+    from src.producer.sensor_simulator import IoTSensorSimulator
+    from src.batch.bronze_to_silver import cleanse_and_validate, detect_anomalies, enrich_with_scd2_dimensions
+    from src.batch.silver_to_gold import run_gold_pipeline
+
+    # 1. Dimension
+    run_scd2_pipeline()
+    dim_df = load_scd2_room_dimension()
+
+    # 2. Simulator in memory
+    simulator = IoTSensorSimulator()
+    readings = []
+    for _ in range(ticks):
+        for room in simulator.rooms:
+            r = room.tick()
+            r["kafka_partition"] = 0
+            r["kafka_offset"] = len(readings)
+            r["kafka_timestamp"] = r["timestamp"]
+            r["ingestion_timestamp"] = r["timestamp"]
+            readings.append(r)
+
+    raw_df = pd.DataFrame(readings)
+    raw_df["event_timestamp"] = pd.to_datetime(raw_df["timestamp"])
+
+    # 3. Bronze persistence
+    BRONZE_DIR.mkdir(parents=True, exist_ok=True)
+    raw_df.to_parquet(BRONZE_DIR / "sample_stream.parquet", index=False)
+
+    # 4. Silver processing
+    cleaned_df = cleanse_and_validate(raw_df)
+    anom_df = detect_anomalies(cleaned_df)
+    silver_df = enrich_with_scd2_dimensions(anom_df, dim_df)
+    SILVER_DIR.mkdir(parents=True, exist_ok=True)
+    silver_df.to_parquet(SILVER_DIR / "silver_sensor_readings.parquet", index=False)
+
+    # 5. Gold aggregations
+    run_gold_pipeline()
+    st.cache_data.clear()
+
+
 @st.cache_data(ttl=5)
 def load_data():
     """Loads datasets across Silver, Gold, and Dimension layers."""
+    silver_file = SILVER_DIR / "silver_sensor_readings.parquet"
+    if not silver_file.exists():
+        seed_cloud_demo_data()
+
     silver_df = pd.DataFrame()
     gold_kpis = pd.DataFrame()
     gold_anomalies = pd.DataFrame()
     gold_efficiency = pd.DataFrame()
     dim_rooms = pd.DataFrame()
 
-    silver_file = SILVER_DIR / "silver_sensor_readings.parquet"
     if silver_file.exists():
         silver_df = pd.read_parquet(silver_file)
         if not silver_df.empty:
@@ -121,6 +166,12 @@ def main():
     # Sidebar Controls
     with st.sidebar:
         st.header("🎛️ Pipeline Controls")
+        if st.button("⚡ Inject Live Telemetry Batch"):
+            with st.spinner("Processing new sensor batch through Medallion pipeline..."):
+                seed_cloud_demo_data(ticks=10)
+                st.success("Batch processed into Silver & Gold layers!")
+                st.rerun()
+
         auto_refresh = st.checkbox("Auto-Refresh (every 5s)", value=False)
         if auto_refresh:
             time.sleep(5)
@@ -147,15 +198,9 @@ def main():
         df = df[df["building_id"] == selected_bldg]
 
     if df.empty:
-        st.warning("⚠️ No telemetry data found in Silver layer yet.")
-        st.markdown("""
-        **To start the pipeline and generate data:**
-        1. Run the Sensor Producer: `python src/producer/sensor_simulator.py`
-        2. Run Ingestion to Bronze: `python src/streaming/kafka_to_bronze.py`
-        3. Run Silver ETL: `python src/batch/bronze_to_silver.py`
-        4. Run Gold ETL: `python src/batch/silver_to_gold.py`
-        """)
-        return
+        st.info("Initializing live telemetry datasets...")
+        seed_cloud_demo_data()
+        st.rerun()
 
     # 1. Top-Level Metric Cards
     latest_readings = df.sort_values("event_timestamp").groupby("room_id").last().reset_index()
