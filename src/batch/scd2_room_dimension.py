@@ -145,6 +145,17 @@ def save_room_dimension(df: pd.DataFrame, output_dir: Path = DIM_ROOMS_DIR):
     return out_file
 
 
+def load_scd2_room_dimension() -> pd.DataFrame:
+    """Loads the SCD Type 2 Room Dimension table, generating it if missing."""
+    dim_file = DIM_ROOMS_DIR / "dim_rooms.parquet"
+    if not dim_file.exists():
+        run_scd2_pipeline()
+    dim_df = pd.read_parquet(dim_file)
+    dim_df["effective_start_date"] = pd.to_datetime(dim_df["effective_start_date"])
+    dim_df["effective_end_date"] = pd.to_datetime(dim_df["effective_end_date"])
+    return dim_df
+
+
 def run_scd2_pipeline():
     """Initializes and saves the SCD Type 2 dimension table."""
     logger.info("Starting SCD Type 2 Room Dimension Pipeline...")

@@ -1,0 +1,3 @@
+# Distributed Spark Engine Dependencies (Local/Cluster Execution)
+-r requirements.txt
+pyspark==3.5.4

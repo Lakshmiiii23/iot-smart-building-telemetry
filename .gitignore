@@ -11,12 +11,9 @@ __pycache__/
 *.so
 .pytest_cache/
 
-# Spark / Lakehouse Checkpoints & Data
+# Spark / Lakehouse Checkpoints & Raw Buffer
 checkpoints/
 data/bronze/
-data/silver/
-data/gold/
-*.parquet
 *.crc
 
 # Temporary & Logs
