@@ -2,6 +2,11 @@
 
 > **An End-to-End Real-Time Streaming & Batch Lakehouse Pipeline using Apache Kafka, PySpark Structured Streaming, Medallion Architecture (Bronze/Silver/Gold), SCD Type 2 Dimension Modeling, and Streamlit.**
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://iot-smart-building-telemetry-xtbvcu87zqngzcd3khrth2.streamlit.app)
+[![GitHub Repo](https://img.shields.io/badge/GitHub-Repository-blue?logo=github)](https://github.com/Lakshmiiii23/iot-smart-building-telemetry)
+
+🔗 **Live Interactive Dashboard:** [https://iot-smart-building-telemetry-xtbvcu87zqngzcd3khrth2.streamlit.app](https://iot-smart-building-telemetry-xtbvcu87zqngzcd3khrth2.streamlit.app)
+
 ---
 
 ## 🏗️ 1. Architecture Overview
